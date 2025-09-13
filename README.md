@@ -21,15 +21,78 @@ This repo includes:
 
 ---
 
-##  Requirements
+## Requirements
 
-* **Trim Galore** (wrapper for Cutadapt + FastQC)
-* **BBTools** (`repair.sh` specifically)
+Use **either** Modules **or** Conda. Pick one and stick with it for both fixing and trimming.
 
-  * HPC: `module load bbmap`
-  * Conda: `mamba install -c bioconda bbmap`
-* Bash 4+
-* Slurm (if running in cluster mode)
+### Option A — HPC **Modules**
+
+Load these **before running** any script:
+
+```bash
+# Core tools for trimming
+module load trim_galore
+module load cutadapt
+module load fastqc
+module load pigz            # optional, if available for faster gzip
+
+# For repairing pairs (used by fix_* scripts)
+module load bbmap           # provides repair.sh
+```
+
+> **Slurm jobs**: non-interactive shells sometimes don’t preload the `module` command.
+> To be safe, the worker script includes a commented block:
+>
+> ```bash
+> # in run_trim_galore_worker.sh (uncomment this block)
+> # source /etc/profile.d/modules.sh >/dev/null 2>&1 || true
+> # module purge >/dev/null 2>&1 || true
+> # module load trim_galore
+> # module load cutadapt
+> # module load fastqc
+> # module load pigz || true
+> ```
+>
+> Uncomment it so each Slurm job loads the tools itself.
+
+### Option B — **Conda/Mamba**
+
+```bash
+mamba create -n cutnrun-tools -c bioconda -c conda-forge \
+  trim-galore cutadapt fastqc bbmap pigz
+mamba activate cutnrun-tools
+```
+
+Verify:
+
+```bash
+which trim_galore && trim_galore --version
+which cutadapt && cutadapt --version
+which fastqc && fastqc --version
+which repair.sh
+```
+
+---
+
+##  In details: Scripts in this repo
+
+* **`run_trim_galore.sh`** — driver for Trim Galore + FastQC
+
+  * `--local`: runs sequentially, streaming logs to your screen.
+  * `--slurm`: submits one **sbatch** job per sample (std Slurm logs).
+* **`run_trim_galore_worker.sh`** — worker for a single sample (called by driver).
+* **`fix_fastq_pair.sh`** — re-synchronize one R1/R2 pair using BBTools `repair.sh`.
+* **`fix_samplesheet_fastq.sh`** — batch-fix all pairs in an nf-core `samplesheet.csv` and write `samplesheet.fixed.csv`.
+
+---
+
+## 🚀 Quick Start
+
+### 1) Environment
+
+Load **modules** (Option A) or **activate Conda** (Option B) as above.
+
+> For **Slurm**, also **uncomment the module block** inside `run_trim_galore_worker.sh` so every job loads the right tools.
 
 ---
 
