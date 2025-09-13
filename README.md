@@ -86,7 +86,7 @@ which repair.sh
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1) Environment
 
